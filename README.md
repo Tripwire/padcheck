@@ -31,14 +31,19 @@ Vulnerable hosts are indicated in the tool output with a line similar to:
 
 The fingerprint produced by this tool is a hash of the server responses. These values are subject to change with changes to the tool or with environmental variation which may influence the error message text. The fingerprint value should therefore be primarily used for correlating similar vulnerabilities within a specific environment.
 
+## Obtaining padcheck
+The easiest way to get started with padcheck is by downloading the latest [Linux binary release](https://github.com/Tripwire/padcheck/releases)
 
-## Building (manual)
+Users can alternatively build it locally for cross-platform or development testing. 
 
-This tool requires first building a patched Go toolchain. See [Installing Go from source](https://golang.org/doc/install/source) for compiler requirements.
+## Building on Linux
 
-Run `./build.sh` to pull the appropriate version of the Go source, patch it, build it, then use it to build the `padcheck` binary.
+1) [Install Go](https://golang.org/doc/install) - Distro packages (e.g. sudo apt install golang-go) are fine.
+2) Run `./build.sh`
 
-## Docker build (recommended)
+Upon success, `./padcheck` will be available as a portable/standalone executable.
+
+## Building on Docker
 
 Building with Docker is easier and cross-platform.
 
