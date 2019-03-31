@@ -11,6 +11,18 @@ There are currently five malformed record test cases:
 4. Missing MAC with Valid Padding (Entire record is padding)
 5. Invalid MAC with Valid Padding (0-length record)
 
+## Background
+
+This tool was created to help identify lingering TLS CBC padding oracles. The research was [originally presented at Black Hat Asia](https://www.blackhat.com/asia-19/briefings/schedule/index.html#zombie-poodle-goldendoodle-and-how-tlsv-can-save-us-all-13741) in March 2019. The [slides](http://i.blackhat.com/asia-19/Fri-March-29/bh-asia-Young-Zombie-Poodle-Goldendoodle-and-How-TLSv13-Can-Save-Us-All.pdf) are available for review.
+
+For further reading on the topic, refer to the following links:
+* [TLS CBC Padding Oracles in 2019](https://www.tripwire.com/state-of-security/vert/tls-cbc-padding-oracles/)
+* [What is Zombie POODLE?](https://www.tripwire.com/state-of-security/vert/zombie-poodle/)
+* [What is GOLDENDOODLE?](https://www.tripwire.com/state-of-security/vert/goldendoodle-attack/)
+* [Scanning for Padding Oracles](https://web-in-security.blogspot.com/2019/03/scanning-for-padding-oracles.html)
+
+Disclosures related to modern TLS CBC padding oracles are being [tracked on GitHub](https://github.com/RUB-NDS/TLS-Padding-Oracles). This also includes oracles identified by [TLS-Scanner](https://github.com/RUB-NDS/TLS-Scanner)
+
 ## Usage
 
 |              |        |                                                                                        |
