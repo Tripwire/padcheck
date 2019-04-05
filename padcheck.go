@@ -202,7 +202,7 @@ func testCipher(hostname, serverName string, cipherId, protocolVersion uint16) (
 			r, _ := regexp.Compile(".*write: ")
 			errString := string(r.ReplaceAll([]byte(fmt.Sprintf("%v", errClose)), []byte("")))
 			if strings.HasPrefix(errorStrings[i], errString) {
-				errorStrings[i] = fmt.Sprintf("%v%s+")
+				errorStrings[i] = fmt.Sprintf("%v%s+", errorList[i], secondErrString)
 			} else {
 				errorStrings[i] = fmt.Sprintf("%v%s+%v", errorList[i], secondErrString, errString)
 			}
