@@ -315,7 +315,7 @@ func analyzeResponseProfile(hostname, serverName string, responseLengths [testCo
 
 }
 
-func scanHost(hostname, serverName string) error {
+func scanHost(hostname, serverName string, cipherIndex int) error {
 	allCiphers := []uint16{
 		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -329,10 +329,12 @@ func scanHost(hostname, serverName string) error {
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	}
-	availableCipher, availableProtocol, err := SupportedCipherTest(hostname, serverName, allCiphers, 0x0303)
+	cipherList := []uint16 {allCiphers[cipherIndex]};
+
+	availableCipher, availableProtocol, err := SupportedCipherTest(hostname, serverName, cipherList, 0x0303)
 	if err != nil {
 		if *verboseLevel > 0 {
-			fmt.Printf("%s (%s) had an unexpected connection failure: %v\n", serverName, hostname, err)
+			fmt.Printf("%s (%s) had an unexpected connection failure: %v (cipher 0x%04x)\n", serverName, hostname, err, cipherList[0])
 		}
 		return err
 	}
@@ -468,14 +470,16 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 		} else {
 			targetHost = fmt.Sprintf("%s:443", address)
 		}
-		err = scanHost(targetHost, hostnameParts[0])
-		if err != nil {
-			if *verboseLevel >= 5 {
-				fmt.Fprintf(os.Stderr, "%s: %s\n", hostname, err)
-			}
-			continue
-		}
 
+		for cipherIndex := 0; cipherIndex < len(cbcSuites); cipherIndex++ {
+			err = scanHost(targetHost, hostnameParts[0], cipherIndex)
+			if err != nil {
+				if *verboseLevel >= 5 {
+					fmt.Fprintf(os.Stderr, "%s: %s\n", hostname, err)
+				}
+			}
+		}
+		continue
 	}
 }
 
