@@ -441,38 +441,57 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 
 	for hostname := range hosts {
 		var targetHost string
-		hostnameParts := strings.Split(hostname, ":")
-		addressList, err := net.LookupIP(hostnameParts[0])
-		if err != nil {
-			if *verboseLevel > 2 {
-				fmt.Printf("Error resolving %s [error: %s]\n", hostname, err)
-				continue
-			}
-		}
-		if len(addressList) == 0 {
-			if *verboseLevel > 0 {
-				fmt.Printf("ERROR: No address associated with %s\n", hostnameParts[0])
-			}
-			continue
-		}
-		address := ""
-		for i := 0; i < len(addressList); i++ {
-			if addressList[i].To4() != nil {
-				address = addressList[i].String()
-				break
-			}
-		}
-		if address == "" {
-			continue
-		}
-		if len(hostnameParts) > 1 {
-			targetHost = fmt.Sprintf("%s:%s", address, hostnameParts[1])
+		var hostnameParts []string
+
+		// Attempt to find hostname and port from argument
+		x,y,z := net.SplitHostPort(hostname)
+		if z == nil {
+			hostnameParts = []string{x, y}
 		} else {
-			targetHost = fmt.Sprintf("%s:443", address)
+			// Default to HTTPS
+			hostnameParts = []string{hostname, "443"}
 		}
 
+		address := ""
+		// Determine if the host is not an IPv4 or IPv6 address
+		if net.ParseIP(hostnameParts[0][1:len(hostnameParts[0])-1]) == nil && net.ParseIP(hostnameParts[0]) == nil {
+			// Host appears to be an FQDN
+			addressList, err := net.LookupIP(hostnameParts[0])
+			if err != nil {
+				if *verboseLevel > 2 {
+					fmt.Printf("Error resolving %s [error: %s]\n", hostname, err)
+					continue
+				}
+			}
+			if len(addressList) == 0 {
+				if *verboseLevel > 0 {
+					fmt.Printf("ERROR: No address associated with %s\n", hostnameParts[0])
+				}
+				continue
+			}
+			for i := 0; i < len(addressList); i++ {
+				if addressList[i].To4() != nil || addressList[i].To16() != nil {
+					address = addressList[i].String()
+					// If the hostname resolves to an IPv6 address make sure it is properly formatted
+					if addressList[i].To16() != nil { address = "[" + address + "]" }
+					break
+				}
+			}
+			if address == "" {
+				continue
+			}
+		} else {
+			// Host appars to be an IP address
+			if net.ParseIP(hostnameParts[0]) != nil && strings.Contains(hostnameParts[0],":") {
+				// If the hostname is an IPv6 address make sure it is properly formatted
+				hostnameParts[0] = "[" + hostnameParts[0] + "]"
+			}
+			address = hostnameParts[0]
+		}
+		targetHost = fmt.Sprintf("%s:%s", address, hostnameParts[1])
+
 		for cipherIndex := 0; cipherIndex < len(cbcSuites); cipherIndex++ {
-			err = scanHost(targetHost, hostnameParts[0], cipherIndex)
+			err := scanHost(targetHost, hostnameParts[0], cipherIndex)
 			if err != nil {
 				if *verboseLevel >= 5 {
 					fmt.Fprintf(os.Stderr, "%s: %s\n", hostname, err)
