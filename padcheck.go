@@ -525,6 +525,7 @@ func main() {
 
 	if *showHelp {
 		fmt.Fprintf(os.Stderr, "This tool tests how a server responds to various CBC padding errors.\n\nFive HTTPS GET requests will be made to the target with different padding modes.\nFirst a good padding and then the errors:\n\t1 - Invalid MAC with Valid Padding (0-length pad)\n\t2 - Missing MAC with Incomplete/Invalid Padding (255-length pad)\n\t3 - Typical POODLE condition (incorrect bytes followed by correct length)\n\t4 - All padding bytes set to 0x80 (integer overflow attempt)\n\nA file containing a list of hosts to scanned with worker threads can be specified via -hosts\n")
+		os.Exit(0)
 	}
 
 	if len(*hostsFile) > 0 {
