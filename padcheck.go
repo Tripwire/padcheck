@@ -448,13 +448,17 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 		if z == nil {
 			hostnameParts = []string{x, y}
 		} else {
+			// If bare hostname is IPv6, remove any supplied brackets
+			hostname = strings.Replace(hostname,"[","",-1)
+			hostname = strings.Replace(hostname,"]","",-1)
+
 			// Default to HTTPS
 			hostnameParts = []string{hostname, "443"}
 		}
 
 		address := ""
 		// Determine if the host is not an IPv4 or IPv6 address
-		if net.ParseIP(hostnameParts[0][1:len(hostnameParts[0])-1]) == nil && net.ParseIP(hostnameParts[0]) == nil {
+		if net.ParseIP(hostnameParts[0]) == nil {
 			// Host appears to be an FQDN
 			addressList, err := net.LookupIP(hostnameParts[0])
 			if err != nil {
