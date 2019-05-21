@@ -329,8 +329,7 @@ func scanHost(hostname, serverName string, cipherIndex int) error {
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	}
-	cipherList := []uint16 {allCiphers[cipherIndex]};
-
+	cipherList := []uint16{allCiphers[cipherIndex]}
 	availableCipher, availableProtocol, err := SupportedCipherTest(hostname, serverName, cipherList, 0x0303)
 	if err != nil {
 		if *verboseLevel > 0 {
@@ -444,13 +443,13 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 		var hostnameParts []string
 
 		// Attempt to find hostname and port from argument
-		x,y,z := net.SplitHostPort(hostname)
-		if z == nil {
-			hostnameParts = []string{x, y}
+		host, port, err := net.SplitHostPort(hostname)
+		if err == nil {
+			hostnameParts = []string{host, port}
 		} else {
 			// If bare hostname is IPv6, remove any supplied brackets
-			hostname = strings.Replace(hostname,"[","",-1)
-			hostname = strings.Replace(hostname,"]","",-1)
+			hostname = strings.Replace(hostname, "[", "", -1)
+			hostname = strings.Replace(hostname, "]", "", -1)
 
 			// Default to HTTPS
 			hostnameParts = []string{hostname, "443"}
@@ -477,7 +476,9 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 				if addressList[i].To4() != nil || addressList[i].To16() != nil {
 					address = addressList[i].String()
 					// If the hostname resolves to an IPv6 address make sure it is properly formatted
-					if addressList[i].To16() != nil { address = "[" + address + "]" }
+					if addressList[i].To16() != nil {
+						address = "[" + address + "]"
+					}
 					break
 				}
 			}
@@ -486,7 +487,7 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 			}
 		} else {
 			// Host appars to be an IP address
-			if net.ParseIP(hostnameParts[0]) != nil && strings.Contains(hostnameParts[0],":") {
+			if net.ParseIP(hostnameParts[0]) != nil && strings.Contains(hostnameParts[0], ":") {
 				// If the hostname is an IPv6 address make sure it is properly formatted
 				hostnameParts[0] = "[" + hostnameParts[0] + "]"
 			}
