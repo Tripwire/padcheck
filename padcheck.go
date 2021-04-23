@@ -329,8 +329,7 @@ func scanHost(hostname, serverName string, cipherIndex int) error {
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	}
-	cipherList := []uint16 {allCiphers[cipherIndex]};
-
+	cipherList := []uint16{allCiphers[cipherIndex]}
 	availableCipher, availableProtocol, err := SupportedCipherTest(hostname, serverName, cipherList, 0x0303)
 	if err != nil {
 		if *verboseLevel > 0 {
@@ -441,38 +440,63 @@ func worker(hosts <-chan string, done *sync.WaitGroup) {
 
 	for hostname := range hosts {
 		var targetHost string
-		hostnameParts := strings.Split(hostname, ":")
-		addressList, err := net.LookupIP(hostnameParts[0])
-		if err != nil {
-			if *verboseLevel > 2 {
-				fmt.Printf("Error resolving %s [error: %s]\n", hostname, err)
-				continue
-			}
-		}
-		if len(addressList) == 0 {
-			if *verboseLevel > 0 {
-				fmt.Printf("ERROR: No address associated with %s\n", hostnameParts[0])
-			}
-			continue
-		}
-		address := ""
-		for i := 0; i < len(addressList); i++ {
-			if addressList[i].To4() != nil {
-				address = addressList[i].String()
-				break
-			}
-		}
-		if address == "" {
-			continue
-		}
-		if len(hostnameParts) > 1 {
-			targetHost = fmt.Sprintf("%s:%s", address, hostnameParts[1])
+		var hostnameParts []string
+
+		// Attempt to find hostname and port from argument
+		host, port, err := net.SplitHostPort(hostname)
+		if err == nil {
+			hostnameParts = []string{host, port}
 		} else {
-			targetHost = fmt.Sprintf("%s:443", address)
+			// If bare hostname is IPv6, remove any supplied brackets
+			hostname = strings.Replace(hostname, "[", "", -1)
+			hostname = strings.Replace(hostname, "]", "", -1)
+
+			// Default to HTTPS
+			hostnameParts = []string{hostname, "443"}
 		}
 
+		address := ""
+		// Determine if the host is not an IPv4 or IPv6 address
+		if net.ParseIP(hostnameParts[0]) == nil {
+			// Host appears to be an FQDN
+			addressList, err := net.LookupIP(hostnameParts[0])
+			if err != nil {
+				if *verboseLevel > 2 {
+					fmt.Printf("Error resolving %s [error: %s]\n", hostname, err)
+					continue
+				}
+			}
+			if len(addressList) == 0 {
+				if *verboseLevel > 0 {
+					fmt.Printf("ERROR: No address associated with %s\n", hostnameParts[0])
+				}
+				continue
+			}
+			for i := 0; i < len(addressList); i++ {
+				if addressList[i].To4() != nil || addressList[i].To16() != nil {
+					address = addressList[i].String()
+					// If the hostname resolves to an IPv6 address make sure it is properly formatted
+					if addressList[i].To16() != nil {
+						address = "[" + address + "]"
+					}
+					break
+				}
+			}
+			if address == "" {
+				continue
+			}
+		} else {
+			// Host appars to be an IP address
+			if net.ParseIP(hostnameParts[0]) != nil && strings.Contains(hostnameParts[0], ":") {
+				// If the hostname is an IPv6 address make sure it is properly formatted
+				hostnameParts[0] = "[" + hostnameParts[0] + "]"
+			}
+			address = hostnameParts[0]
+		}
+		targetHost = fmt.Sprintf("%s:%s", address, hostnameParts[1])
+
 		for cipherIndex := 0; cipherIndex < len(cbcSuites); cipherIndex++ {
-			err = scanHost(targetHost, hostnameParts[0], cipherIndex)
+			err := scanHost(targetHost, hostnameParts[0], cipherIndex)
 			if err != nil {
 				if *verboseLevel >= 5 {
 					fmt.Fprintf(os.Stderr, "%s: %s\n", hostname, err)
@@ -506,6 +530,7 @@ func main() {
 
 	if *showHelp {
 		fmt.Fprintf(os.Stderr, "This tool tests how a server responds to various CBC padding errors.\n\nFive HTTPS GET requests will be made to the target with different padding modes.\nFirst a good padding and then the errors:\n\t1 - Invalid MAC with Valid Padding (0-length pad)\n\t2 - Missing MAC with Incomplete/Invalid Padding (255-length pad)\n\t3 - Typical POODLE condition (incorrect bytes followed by correct length)\n\t4 - All padding bytes set to 0x80 (integer overflow attempt)\n\nA file containing a list of hosts to scanned with worker threads can be specified via -hosts\n")
+		os.Exit(0)
 	}
 
 	if len(*hostsFile) > 0 {
