@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"crypto/sha1"
 	"crypto/tls"
-	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -368,9 +367,8 @@ func scanHost(hostname, serverName string, cipherIndex int) error {
 				if *verboseLevel > 0 {
 					fmt.Printf("%s (%s) exhibited an oracle which did not appear on iteration %d. (Not exploitable)\n", serverName, hostname, iteration)
 				}
-				return errors.New("Oracle disappeared")
 			}
-			return nil
+			break
 		}
 
 		if lastErrorPrint != "" {
@@ -378,7 +376,7 @@ func scanHost(hostname, serverName string, cipherIndex int) error {
 				if *verboseLevel > 0 {
 					fmt.Printf("%s (%s) has an inconsistent error oracle response. (Maybe exploitable)\n", serverName, hostname)
 				}
-				return errors.New("Inconsistent error responses")
+				break
 			}
 		} else {
 			lastErrorPrint = errorPrint
@@ -389,7 +387,7 @@ func scanHost(hostname, serverName string, cipherIndex int) error {
 				if *verboseLevel > 0 {
 					fmt.Printf("%s (%s) has an inconsistent response length profile\n (Maybe exploitable)", serverName, hostname)
 				}
-				return errors.New("Inconsistent length responses")
+				break
 			}
 		} else {
 			lastLengthPrint = lengthPrint
@@ -427,7 +425,7 @@ func scanHost(hostname, serverName string, cipherIndex int) error {
 			fmt.Printf("\tLength Hash:%v\n\tError Hash:%v\n", lengthPrint, errorPrint)
 		}
 	} else {
-		if *verboseLevel > 0 {
+		if *verboseLevel >= 1 {
 			fmt.Printf("%s (%s) behaves securely\n", serverName, hostname)
 		}
 	}
@@ -535,9 +533,6 @@ func main() {
 
 	if len(*hostsFile) > 0 {
 		hosts, err := os.Open(*hostsFile)
-		if *verboseLevel == 1 {
-			*verboseLevel = 0
-		}
 		if err != nil {
 			panic(err)
 		}
